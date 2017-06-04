@@ -41,9 +41,9 @@ class CommandsConfig(SlottedModel):
 
 class TagsConfig(SlottedModel):
     embed = Field(bool, default=False)
-    title = Field(str)
-    description = Field(str)
-    message = Field(str)
+    title = Field(raw)
+    description = Field(raw)
+    message = Field(raw)
 
 
 class GuildConfig(SlottedModel):
