@@ -526,7 +526,8 @@ class CorePlugin(Plugin):
             'msg': event.msg,
             'guild': event.msg.guild,
             'channel': event.msg.channel,
-            'author': event.msg.author
+            'author': event.msg.author,
+            'config': self.guilds.get(guild.id).get_config()
         }
 
         # Mulitline eval
