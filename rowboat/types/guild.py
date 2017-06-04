@@ -41,9 +41,9 @@ class CommandsConfig(SlottedModel):
 
 class TagsConfig(SlottedModel):
     embed = Field(bool, default=False)
-    title = Field(str, default='')
-    description = Field(str, default='')
-    message = Field(str, default='')
+    title = Field(str)
+    description = Field(str)
+    message = Field(str)
 
 
 class GuildConfig(SlottedModel):
@@ -52,4 +52,4 @@ class GuildConfig(SlottedModel):
     levels = DictField(int, int)
     plugins = Field(PluginsConfig.parse)
     tags = DictField(TagsConfig)
-    
+
