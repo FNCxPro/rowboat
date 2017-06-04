@@ -499,8 +499,8 @@ class CorePlugin(Plugin):
             if config.tags and config.tags[tag]:
                 if config.tags[tag].embed:
                     embed = MessageEmbed()
-                    embed.set_author(name=config.tags[tag].title, icon_url=self.client.state.me.avatar_url, url='https://rowboat.relative.yt/')
-                    embed.description = config.tags[tag].description
+                    embed.set_author(name=config.tags[tag].embed.title, icon_url=self.client.state.me.avatar_url, url='https://rowboat.relative.yt/')
+                    embed.description = config.tags[tag].embed.description
                     event.msg.reply('', embed=embed)
                     return
                 else:
