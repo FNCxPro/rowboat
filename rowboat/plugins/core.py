@@ -506,6 +506,8 @@ class CorePlugin(Plugin):
                 else:
                     event.msg.reply(config.tags[tag].message)
                     return
+            else:
+                event.msg.reply(':warning: That tag doesn\'t exist!')
 
     @Plugin.command('uptime', level=-1)
     def command_uptime(self, event):
