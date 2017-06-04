@@ -494,7 +494,7 @@ class CorePlugin(Plugin):
 
     @Plugin.command('t', '<tag>')
     def command_tag(self, event, tag):
-        config = (event.msg.guild.id in self.guilds and self.guilds.get(event.msg.guild.id).get_config())
+        config = self.guilds.get(event.msg.guild.id).get_config()
         if config:
             if config.tags and config.tags[tag]:
                 if config.tags[tag].embed:
