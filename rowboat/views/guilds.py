@@ -23,21 +23,21 @@ def with_guild(f):
     @authed
     @functools.wraps(f)
     def func(*args, **kwargs):
-        #try:
-            #if g.user.admin:
-        guild = Guild.get(Guild.guild_id == kwargs.pop('gid'))
-        guild.role = 'admin'
-            #else:
-            #    guild = Guild.select(
-            #        Guild,
-            #        Guild.config['web'][str(g.user.user_id)].alias('role')
-            #    ).where(
-            #        (Guild.guild_id == kwargs.pop('gid')) &
-            #        (~(Guild.config['web'][str(g.user.user_id)] >> None))
-            #    ).get()
-        return f(guild, *args, **kwargs)
-        #except Guild.DoesNotExist:
-            #return 'Invalid Guild', 404
+        try:
+            if g.user.admin:
+                guild = Guild.get(Guild.guild_id == kwargs.pop('gid'))
+                guild.role = 'admin'
+            else:
+                guild = Guild.select(
+                    Guild,
+                    Guild.config['web'][str(g.user.user_id)].alias('role')
+                ).where(
+                    (Guild.guild_id == kwargs.pop('gid')) &
+                    (~(Guild.config['web'][str(g.user.user_id)] >> None))
+                ).get()
+            return f(guild, *args, **kwargs)
+        except Guild.DoesNotExist:
+            return 'Invalid Guild', 404
     return func
 
 
@@ -173,8 +173,8 @@ def guild_infractions_list(guild):
 @guilds.route('/api/guilds/<gid>/config/update', methods=['POST'])
 @with_guild
 def guild_config_update(guild):
-    #if guild.role not in ['admin', 'editor']:
-    #    return 'Missing Permissions', 403
+    if guild.role not in ['admin', 'editor']:
+        return 'Missing Permissions', 403
 
     if guild.role != 'admin':
         try:
@@ -185,8 +185,8 @@ def guild_config_update(guild):
         before = sorted(guild.config.get('web', []).items(), key=lambda i: i[0])
         after = sorted([(str(k), v) for k, v in data.get('web', []).items()], key=lambda i: i[0])
 
-        #if before != after:
-        #    return 'Cannot Alter Permissions', 403
+        if before != after:
+            return 'Cannot Alter Permissions', 403
 
     try:
         guild.update_config(g.user.user_id, request.values.get('data'))
