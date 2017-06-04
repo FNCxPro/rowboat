@@ -54,7 +54,7 @@ def auth_discord_callback():
     discord = make_discord_session(state=session['state'])
     token = discord.fetch_token(
         config['TOKEN_URL'],
-        client_secret=config['CLIENT_SECRET'],,
+        client_secret=config['CLIENT_SECRET'],
         authorization_response=request.url)
 
     discord = make_discord_session(token=token)
