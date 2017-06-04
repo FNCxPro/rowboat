@@ -39,11 +39,11 @@ class CommandsConfig(SlottedModel):
         return rule_matcher(command, self.overrides or [])
     
 
-class TagsConfig(SlottedModel):
+class TagConfig(SlottedModel):
     embed = Field(bool, default=False)
-    title = Field(raw)
-    description = Field(raw)
-    message = Field(raw)
+    title = Field(str, default='')
+    description = Field(str, default='')
+    message = Field(str, default='')
 
 
 class GuildConfig(SlottedModel):
@@ -51,5 +51,4 @@ class GuildConfig(SlottedModel):
     commands = Field(CommandsConfig, default=None, create=False)
     levels = DictField(int, int)
     plugins = Field(PluginsConfig.parse)
-    tags = DictField(TagsConfig)
-
+    tags = DictField(str, TagConfig)
