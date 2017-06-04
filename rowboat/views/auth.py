@@ -12,16 +12,16 @@ def token_updater(token):
 
 def make_discord_session(token=None, state=None, scope=None):
       return OAuth2Session(
-          client_id=config['CLIENT_ID'],
+          client_id=current_app.config['discord']['CLIENT_ID'],
           token=token,
           state=state,
           scope=scope,
-          redirect_uri=config['REDIRECT_URI'],
+          redirect_uri=current_app.config['discord']['REDIRECT_URI'],
           auto_refresh_kwargs={
-              'client_id': config['CLIENT_ID'],
-              'client_secret': config['CLIENT_SECRET'],
+              'client_id': current_app.config['discord']['CLIENT_ID'],
+              'client_secret': current_app.config['discord']['CLIENT_SECRET'],
           },
-          auto_refresh_url=config['TOKEN_URL'],
+          auto_refresh_url=current_app.config['discord']['TOKEN_URL'],
           token_updater=token_updater)
 
 
@@ -35,7 +35,7 @@ def auth_logout():
 @auth.route('/discord')
 def auth_discord():
     discord = make_discord_session(scope=('identify', ))
-    auth_url, state = discord.authorization_url(config['AUTH_URL'])
+    auth_url, state = discord.authorization_url(current_app.config['discord']['AUTH_URL'])
     session['state'] = state
     return redirect(auth_url)
 
@@ -50,13 +50,13 @@ def auth_discord_callback():
 
     discord = make_discord_session(state=session['state'])
     token = discord.fetch_token(
-        config['TOKEN_URL'],
-        client_secret=config['CLIENT_SECRET'],
+        current_app.config['discord']['TOKEN_URL'],
+        client_secret=current_app.config['discord']['CLIENT_SECRET'],
         authorization_response=request.url)
 
     discord = make_discord_session(token=token)
 
-    data = discord.get(config['API_BASE_URL'] + '/users/@me').json()
+    data = discord.get(current_app.config['discord']['API_BASE_URL'] + '/users/@me').json()
     user = User.with_id(data['id'])
 
     if not user:
