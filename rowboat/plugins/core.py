@@ -88,7 +88,10 @@ class CorePlugin(Plugin):
                 plugin_name = '{}Plugin'.format(event.name.split('.', 1)[0].title())
                 if plugin_name in self.bot.plugins:
                     self.log.info('Detected change in %s, reloading...', plugin_name)
-                    self.bot.plugins[plugin_name].reload()
+                    try:
+                        self.bot.plugins[plugin_name].reload()
+                    except Exception:
+                        self.log.exception('Failed to reload: ')
 
     def wait_for_actions(self):
         ps = rdb.pubsub()
@@ -105,11 +108,17 @@ class CorePlugin(Plugin):
                         self.guilds[data['id']].name
                     )
 
-                self.log.info(u'Reloading config for guild %s', self.guilds[data['id']].name)
+                self.log.info(u'Reloading guild %s', self.guilds[data['id']].name)
+
+                # Refresh config, mostly to validate
                 try:
                     self.guilds[data['id']].get_config(refresh=True)
                 except:
                     self.log.exception(u'Failed to reload config for guild %s', self.guilds[data['id']].name)
+                    return
+
+                # Reload the guild entirely
+                self.guilds[data['id']] = Guild.with_id(data['id'])
             elif data['type'] == 'RESTART':
                 self.log.info('Restart requested, signaling parent')
                 os.kill(os.getppid(), signal.SIGUSR1)
@@ -142,17 +151,29 @@ class CorePlugin(Plugin):
 
             return
 
+        if hasattr(plugin, 'WHITELIST_FLAG'):
+            if not int(plugin.WHITELIST_FLAG) in self.guilds[guild_id].whitelist:
+                return
+
         event.base_config = self.guilds[guild_id].get_config()
 
         plugin_name = plugin.name.lower().replace('plugin', '')
         if not getattr(event.base_config.plugins, plugin_name, None):
             return
 
+        self._attach_local_event_data(event, plugin_name, guild_id)
+
+        return event
+
+    def _attach_local_event_data(self, event, plugin_name, guild_id):
         if not hasattr(event, 'config'):
             event.config = LocalProxy()
 
+        if not hasattr(event, 'rowboat_guild'):
+            event.rowboat_guild = LocalProxy()
+
         event.config.set(getattr(event.base_config.plugins, plugin_name))
-        return event
+        event.rowboat_guild.set(self.guilds[guild_id])
 
     @Plugin.schedule(290, init=False)
     def update_guild_bans(self):
@@ -389,9 +410,11 @@ class CorePlugin(Plugin):
                 if not hasattr(event, 'config'):
                     event.config = LocalProxy()
 
-                event.config.set(getattr(config.plugins, 'modlog', None))
-                if not event.config:
+                modlog_config = getattr(config.plugins, 'modlog', None)
+                if not modlog_config:
                     return
+
+                self._attach_local_event_data(event, 'modlog', event.guild.id)
 
                 plugin = self.bot.plugins.get('ModLogPlugin')
                 if plugin:
