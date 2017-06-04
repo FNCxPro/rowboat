@@ -49,4 +49,4 @@ class GuildConfig(SlottedModel):
     commands = Field(CommandsConfig, default=None, create=False)
     levels = DictField(int, int)
     plugins = Field(PluginsConfig.parse)
-    tags = DictField(TagConfig, default=None, create=False)
+    tags = DictField(TagConfig)
