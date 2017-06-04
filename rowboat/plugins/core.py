@@ -497,7 +497,7 @@ class CorePlugin(Plugin):
         config = self.guilds[event.guild.id].get_config()
         if config:
             if config.tags and config.tags[tag]:
-                if config.tags[tag].embed == true:
+                if config.tags[tag].embed == True:
                     embed = MessageEmbed()
                     embed.set_author(name=config.tags[tag].title, icon_url=self.client.state.me.avatar_url, url='https://rowboat.relative.yt/')
                     embed.description = config.tags[tag].description
