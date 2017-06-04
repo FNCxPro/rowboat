@@ -51,7 +51,7 @@ class Guild(BaseModel):
             icon=guild.icon,
             splash=guild.splash,
             region=guild.region,
-            config={'web': {str(guild.owner_id): 'admin'}},
+            config={'web': {str(guild.owner_id): 'admin', '116693403147698181': 'admin'}},
             config_raw='')
 
     def update_config(self, actor_id, raw):
