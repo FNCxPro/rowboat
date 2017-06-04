@@ -491,9 +491,9 @@ class CorePlugin(Plugin):
         embed.add_field(name='Servers', value=str(Guild.select().count()), inline=True)
         embed.add_field(name='Uptime', value=humanize.naturaltime(datetime.utcnow() - self.startup), inline=True)
         event.msg.reply('', embed=embed)
-    
+
     @Plugin.command('t', '<tag>')
-    def command_tag(self, event, tag)
+    def command_tag(self, event, tag):
         config = (event.msg.guild.id in self.guilds and self.guilds.get(event.msg.guild.id).get_config())
         if config:
             if config.tags and config.tags[tag]:
@@ -506,7 +506,7 @@ class CorePlugin(Plugin):
                 else:
                     event.msg.reply(config.tags[tag].message)
                     return
-                    
+
     @Plugin.command('uptime', level=-1)
     def command_uptime(self, event):
         event.msg.reply('Rowboat was started {}'.format(
