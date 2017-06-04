@@ -491,7 +491,22 @@ class CorePlugin(Plugin):
         embed.add_field(name='Servers', value=str(Guild.select().count()), inline=True)
         embed.add_field(name='Uptime', value=humanize.naturaltime(datetime.utcnow() - self.startup), inline=True)
         event.msg.reply('', embed=embed)
-
+    
+    @Plugin.command('t', '<tag>')
+    def command_tag(self, event, tag)
+        config = (event.msg.guild.id in self.guilds and self.guilds.get(event.msg.guild.id).get_config())
+        if config:
+            if config.tags and config.tags[tag]:
+                if config.tags[tag].embed:
+                    embed = MessageEmbed()
+                    embed.set_author(name=config.tags[tag].title, icon_url=self.client.state.me.avatar_url, url='https://rowboat.relative.yt/')
+                    embed.description = config.tags[tag].description
+                    event.msg.reply('', embed=embed)
+                    return
+                else:
+                    event.msg.reply(config.tags[tag].message)
+                    return
+                    
     @Plugin.command('uptime', level=-1)
     def command_uptime(self, event):
         event.msg.reply('Rowboat was started {}'.format(
@@ -510,7 +525,7 @@ class CorePlugin(Plugin):
         code = cmd.func.__code__
         lines, firstlineno = inspect.getsourcelines(code)
 
-        event.msg.reply('<https://github.com/b1naryth1ef/rowboat/blob/master/{}#L{}-{}>'.format(
+        event.msg.reply('<https://github.com/FNCxPro/rowboat/blob/master/{}#L{}-{}>'.format(
             code.co_filename,
             firstlineno,
             firstlineno + len(lines)
