@@ -32,7 +32,6 @@ class BaseModel(Model):
 
 
 def init_db(env):
-    reset_db()
     database.initialize(PostgresqlExtDatabase(
         'rowboat',
         host='db',
@@ -48,7 +47,8 @@ def init_db(env):
 
 
 def reset_db():
-
+    init_db()
+    
     for model in REGISTERED_MODELS:
         model.drop_table(True)
         model.create_table(True)
