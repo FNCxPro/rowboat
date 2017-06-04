@@ -6,7 +6,8 @@ from rowboat.util.decos import authed
 
 auth = Blueprint('auth', __name__, url_prefix='/auth')
 
-config = current_app.config['discord'
+with auth.app_context():
+    config = current_app.config['discord']
 
 def token_updater(token):
     pass
