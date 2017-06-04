@@ -32,6 +32,7 @@ class BaseModel(Model):
 
 
 def init_db(env):
+    reset_db()
     database.initialize(PostgresqlExtDatabase(
         'rowboat',
         host='db',
