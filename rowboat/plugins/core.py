@@ -493,8 +493,8 @@ class CorePlugin(Plugin):
         event.msg.reply('', embed=embed)
 
     @Plugin.command('t', '<tag>')
-    def command_tag(self, event, tag):
-        config = self.guilds.get(event.msg.guild.id).get_config()
+    def command_t(self, event, tag):
+        config = event.base_config
         if config:
             if config.tags and config.tags[tag]:
                 if config.tags[tag].embed:
