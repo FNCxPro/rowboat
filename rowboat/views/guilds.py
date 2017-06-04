@@ -173,8 +173,8 @@ def guild_infractions_list(guild):
 @guilds.route('/api/guilds/<gid>/config/update', methods=['POST'])
 @with_guild
 def guild_config_update(guild):
-    if guild.role not in ['admin', 'editor']:
-        return 'Missing Permissions', 403
+    #if guild.role not in ['admin', 'editor']:
+    #    return 'Missing Permissions', 403
 
     if guild.role != 'admin':
         try:
@@ -185,8 +185,8 @@ def guild_config_update(guild):
         before = sorted(guild.config.get('web', []).items(), key=lambda i: i[0])
         after = sorted([(str(k), v) for k, v in data.get('web', []).items()], key=lambda i: i[0])
 
-        if before != after:
-            return 'Cannot Alter Permissions', 403
+        #if before != after:
+        #    return 'Cannot Alter Permissions', 403
 
     try:
         guild.update_config(g.user.user_id, request.values.get('data'))
