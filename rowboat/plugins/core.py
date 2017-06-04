@@ -30,6 +30,8 @@ from rowboat.models.message import Command
 from rowboat.models.notification import Notification
 from rowboat.plugins.modlog import Actions
 
+from yaml import load
+
 PY_CODE_BLOCK = u'```py\n{}\n```'
 
 BOT_INFO = '''
@@ -56,7 +58,11 @@ class CorePlugin(Plugin):
             self.spawn(self.wait_for_plugin_changes)
 
         self.spawn(self.wait_for_actions)
-
+        
+        self.global_config = None
+        with open('config.yaml', 'r') as f:
+            self.global_config = f
+        
     def our_add_plugin(self, cls, *args, **kwargs):
         if getattr(cls, 'global_plugin', False):
             Bot.add_plugin(self.bot, cls, *args, **kwargs)
@@ -190,10 +196,10 @@ class CorePlugin(Plugin):
         embed.color = 0x779ecb
         yield embed
         self.bot.client.api.channels_messages_create(
-            290924692057882635 if ENV == 'prod' else 301869081714491393,
-            '',
-            embed=embed
-        )
+        self.global_config['control_messages']['PRODUCTION'] if ENV == 'prod' else self.global_config['control_messages']['DEVELOPMENT'],
+              '',
+              embed=embed
+          )
 
     @Plugin.listen('Resumed')
     def on_resumed(self, event):
