@@ -494,10 +494,10 @@ class CorePlugin(Plugin):
 
     @Plugin.command('t', '<tag>')
     def command_t(self, event, tag):
-        config = event.base_config
+        config = self.guilds[event.guild.id].get_config()
         if config:
             if config.tags and config.tags[tag]:
-                if config.tags[tag].embed:
+                if config.tags[tag].embed == true:
                     embed = MessageEmbed()
                     embed.set_author(name=config.tags[tag].title, icon_url=self.client.state.me.avatar_url, url='https://rowboat.relative.yt/')
                     embed.description = config.tags[tag].description
