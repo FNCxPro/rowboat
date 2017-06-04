@@ -48,7 +48,6 @@ def init_db(env):
 
 
 def reset_db():
-    init_db()
 
     for model in REGISTERED_MODELS:
         model.drop_table(True)
