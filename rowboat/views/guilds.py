@@ -23,10 +23,10 @@ def with_guild(f):
     @authed
     @functools.wraps(f)
     def func(*args, **kwargs):
-        try:
+        #try:
             #if g.user.admin:
-            guild = Guild.get(Guild.guild_id == kwargs.pop('gid'))
-            guild.role = 'admin'
+        guild = Guild.get(Guild.guild_id == kwargs.pop('gid'))
+        guild.role = 'admin'
             #else:
             #    guild = Guild.select(
             #        Guild,
@@ -35,7 +35,7 @@ def with_guild(f):
             #        (Guild.guild_id == kwargs.pop('gid')) &
             #        (~(Guild.config['web'][str(g.user.user_id)] >> None))
             #    ).get()
-            return f(guild, *args, **kwargs)
+        return f(guild, *args, **kwargs)
         #except Guild.DoesNotExist:
             #return 'Invalid Guild', 404
     return func
