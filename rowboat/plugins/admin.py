@@ -431,7 +431,6 @@ class AdminPlugin(Plugin):
         buff = ''
         for role in (sorted(event.guild.roles.values(), key=operator.attrgetter('position'))):
             role = S(u'{} - {}\n'.format(role.id, role.name), escape_codeblocks=True)
-            role = S(u'{} - {}\n'.format(role.id, role.name), escape_codeblocks=True)
             if len(role) + len(buff) > 1990:
                 event.msg.reply(u'```{}```'.format(buff))
                 buff = ''
