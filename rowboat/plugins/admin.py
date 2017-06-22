@@ -429,7 +429,8 @@ class AdminPlugin(Plugin):
     @Plugin.command('roles', level=CommandLevels.MOD)
     def roles(self, event):
         buff = ''
-        for role in event.guild.roles.values():
+        roles = sorted(event.guild.roles.items(), key=operator.itemgetter('position'))
+        for role in roles.values():
             role = S(u'{} - {}\n'.format(role.id, role.name), escape_codeblocks=True)
             if len(role) + len(buff) > 1990:
                 event.msg.reply(u'```{}```'.format(buff))
