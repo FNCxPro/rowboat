@@ -429,7 +429,7 @@ class AdminPlugin(Plugin):
     @Plugin.command('roles', level=CommandLevels.MOD)
     def roles(self, event):
         buff = ''
-        roles = sorted(event.guild.roles.items(), key=operator.itemgetter('position'))
+        roles = event.guild.roles.sort(key=lambda item: (item['position']))
         for role in roles.values():
             role = S(u'{} - {}\n'.format(role.id, role.name), escape_codeblocks=True)
             if len(role) + len(buff) > 1990:
