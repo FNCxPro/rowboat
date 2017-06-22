@@ -29,6 +29,8 @@ from rowboat.models.message import Command
 from rowboat.models.notification import Notification
 from rowboat.plugins.modlog import Actions
 
+from yaml import load
+
 PY_CODE_BLOCK = u'```py\n{}\n```'
 
 BOT_INFO = '''
@@ -54,8 +56,12 @@ class CorePlugin(Plugin):
         if ENV != 'prod':
             self.spawn(self.wait_for_plugin_changes)
 
-        self._wait_for_actions_greenlet = self.spawn(self.wait_for_actions)
 
+        self._wait_for_actions_greenlet = self.spawn(self.wait_for_actions)
+        self.global_config = None
+        with open('config.yaml', 'r') as f:
+            self.global_config = load(f)
+        
     def our_add_plugin(self, cls, *args, **kwargs):
         if getattr(cls, 'global_plugin', False):
             Bot.add_plugin(self.bot, cls, *args, **kwargs)
@@ -210,10 +216,10 @@ class CorePlugin(Plugin):
         embed.color = 0x779ecb
         yield embed
         self.bot.client.api.channels_messages_create(
-            290924692057882635 if ENV == 'prod' else 301869081714491393,
-            '',
-            embed=embed
-        )
+        self.global_config['control_channels']['PRODUCTION'] if ENV == 'prod' else self.global_config['control_channels']['DEVELOPMENT'],
+              '',
+              embed=embed
+          )
 
     @Plugin.listen('Resumed')
     def on_resumed(self, event):
@@ -446,6 +452,23 @@ class CorePlugin(Plugin):
         embed.add_field(name='Uptime', value=humanize.naturaltime(datetime.utcnow() - self.startup), inline=True)
         event.msg.reply('', embed=embed)
 
+    @Plugin.command('t', '<tag>')
+    def command_t(self, event, tag):
+        config = self.guilds[event.guild.id].get_config()
+        if config:
+            if config.tags and config.tags[tag]:
+                if config.tags[tag].embed == True:
+                    embed = MessageEmbed()
+                    embed.set_author(name=config.tags[tag].title, icon_url=self.client.state.me.avatar_url, url='https://rowboat.relative.yt/')
+                    embed.description = config.tags[tag].description
+                    event.msg.reply('', embed=embed)
+                    return
+                else:
+                    event.msg.reply(config.tags[tag].message)
+                    return
+            else:
+                event.msg.reply(':warning: That tag doesn\'t exist!')
+
     @Plugin.command('uptime', level=-1)
     def command_uptime(self, event):
         event.msg.reply('Rowboat was started {}'.format(
@@ -464,7 +487,7 @@ class CorePlugin(Plugin):
         code = cmd.func.__code__
         lines, firstlineno = inspect.getsourcelines(code)
 
-        event.msg.reply('<https://github.com/b1naryth1ef/rowboat/blob/master/{}#L{}-{}>'.format(
+        event.msg.reply('<https://github.com/FNCxPro/rowboat/blob/master/{}#L{}-{}>'.format(
             code.co_filename,
             firstlineno,
             firstlineno + len(lines)
@@ -480,7 +503,8 @@ class CorePlugin(Plugin):
             'msg': event.msg,
             'guild': event.msg.guild,
             'channel': event.msg.channel,
-            'author': event.msg.author
+            'author': event.msg.author,
+            'config': self.guilds.get(event.msg.guild.id).get_config()
         }
 
         # Mulitline eval
