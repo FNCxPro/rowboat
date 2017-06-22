@@ -24,7 +24,6 @@ from rowboat.sql import init_db
 from rowboat.redis import rdb
 
 import rowboat.models
-from rowboat.models.user import Infraction
 from rowboat.models.guild import Guild, GuildBan
 from rowboat.models.message import Command
 from rowboat.models.notification import Notification
@@ -57,8 +56,8 @@ class CorePlugin(Plugin):
         if ENV != 'prod':
             self.spawn(self.wait_for_plugin_changes)
 
-        self.spawn(self.wait_for_actions)
-        
+
+        self._wait_for_actions_greenlet = self.spawn(self.wait_for_actions)
         self.global_config = None
         with open('config.yaml', 'r') as f:
             self.global_config = load(f)
@@ -113,12 +112,12 @@ class CorePlugin(Plugin):
                 # Refresh config, mostly to validate
                 try:
                     self.guilds[data['id']].get_config(refresh=True)
+
+                    # Reload the guild entirely
+                    self.guilds[data['id']] = Guild.with_id(data['id'])
                 except:
                     self.log.exception(u'Failed to reload config for guild %s', self.guilds[data['id']].name)
-                    return
-
-                # Reload the guild entirely
-                self.guilds[data['id']] = Guild.with_id(data['id'])
+                    continue
             elif data['type'] == 'RESTART':
                 self.log.info('Restart requested, signaling parent')
                 os.kill(os.getppid(), signal.SIGUSR1)
@@ -407,9 +406,6 @@ class CorePlugin(Plugin):
 
             # Dispatch the command used modlog event
             if config:
-                if not hasattr(event, 'config'):
-                    event.config = LocalProxy()
-
                 modlog_config = getattr(config.plugins, 'modlog', None)
                 if not modlog_config:
                     return
@@ -446,42 +442,6 @@ class CorePlugin(Plugin):
         guild = Guild.setup(event.guild)
         self.guilds[event.guild.id] = guild
         event.msg.reply(':ok_hand: successfully loaded configuration')
-
-    @Plugin.command('nuke', '<user:snowflake> <reason:str...>', level=-1)
-    def nuke(self, event, user, reason):
-        contents = []
-
-        for gid, guild in self.guilds.items():
-            guild = self.state.guilds[gid]
-            perms = guild.get_permissions(self.state.me)
-
-            if not perms.ban_members and not perms.administrator:
-                contents.append(u':x: {} (`{}`) - No Permissions'.format(
-                    guild.name,
-                    gid
-                ))
-                continue
-
-            try:
-                Infraction.ban(
-                    self,
-                    event,
-                    user,
-                    reason,
-                    guild=guild)
-            except:
-                contents.append(u':x: {} (`{}`) - Unknown Error'.format(
-                    guild.name,
-                    gid
-                ))
-                self.log.exception('Failed to force ban %s in %s', user, gid)
-
-            contents.append(u':white_check_mark: {} (`{}`) - :regional_indicator_f:'.format(
-                guild.name,
-                gid
-            ))
-
-        event.msg.reply('Results:\n' + '\n'.join(contents))
 
     @Plugin.command('about')
     def command_about(self, event):
@@ -593,3 +553,30 @@ class CorePlugin(Plugin):
     def control_reconnect(self, event):
         event.msg.reply('Ok, closing connection')
         self.client.gw.ws.close()
+
+    @Plugin.command('invite', '<guild:snowflake>', group='guilds', level=-1)
+    def guild_join(self, event, guild=None):
+        guild = self.state.guilds.get(guild)
+        if not guild:
+            return event.msg.reply(':no_entry_sign: invalid or unknown guild ID')
+
+        msg = event.msg.reply(u'Ok, hold on while I get you setup with an invite link to {}'.format(
+            guild.name,
+        ))
+
+        general_channel = guild.channels[guild.id]
+
+        try:
+            invite = general_channel.create_invite(
+                max_age=300,
+                max_uses=1,
+                unique=True,
+            )
+        except:
+            return msg.edit(u':no_entry_sign: Hmmm, something went wrong creating an invite for {}'.format(
+                guild.name,
+            ))
+
+        msg.edit(u'Ok, here is a temporary invite for you: {}'.format(
+            invite.code,
+        ))

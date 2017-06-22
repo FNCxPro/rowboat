@@ -197,6 +197,10 @@ class ModLogPlugin(Plugin):
             del self.debounce[guild_id][user_id][typ]
 
     def resolve_channels(self, event, config):
+        self.log.info('Resolving channels for guild %s (%s)',
+            event.guild.id,
+            event.guild.name)
+
         channels = {}
         for key, channel in config.channels.items():
             if isinstance(key, int):
@@ -207,11 +211,21 @@ class ModLogPlugin(Plugin):
             if not chan:
                 raise MetaException('Failed to ModLog.resolve_channels', {
                     'guild_name': event.guild.name,
-                    'guild_id': event.guild.id,
-                    'config_channels': list(config.channels.keys()),
-                    'guild_channels': list(event.guild.channels.keys()),
+                    'guild_id': unicode(event.guild.id),
+                    'key': unicode(key),
+                    'config_channels': list(unicode(i) for i in config.channels.keys()),
+                    'guild_channels': list(unicode(i) for i in event.guild.channels.keys()),
                 })
             channels[chan.id] = channel
+
+        self.log.info('Resolved channels for guild %s (%s): %s',
+            event.guild.id,
+            event.guild.name,
+            channels)
+
+        if config._channels:
+            self.log.warning('Overwriting previously resolved channels %s / %s', config._channels, channels)
+
         config._channels = channels
 
         config._custom = None
@@ -275,6 +289,12 @@ class ModLogPlugin(Plugin):
             return msg
 
         for channel_id, chan_config in config._channels.items():
+            if channel_id not in guild.channels:
+                self.log.error('guild %s has outdated modlog channels (%s)', guild.id, channel_id)
+                config._channels = []
+                config.resolved = False
+                return
+
             if not {action} & chan_config.subscribed:
                 continue
 

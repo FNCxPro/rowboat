@@ -4,9 +4,10 @@ from peewee import fn, JOIN
 from datetime import datetime, timedelta
 
 from disco.bot import CommandLevels
+from disco.api.http import APIException
 from disco.types.message import MessageEmbed
 
-from rowboat.plugins import RowboatPlugin as Plugin
+from rowboat.plugins import RowboatPlugin as Plugin, CommandFail
 from rowboat.types.plugin import PluginConfig
 from rowboat.types import ChannelField, Field, SlottedModel, ListField, DictField
 from rowboat.models.user import StarboardBlock, User
@@ -15,6 +16,7 @@ from rowboat.util.timing import Debounce
 
 
 STAR_EMOJI = u'\U00002B50'
+UNKNOWN_MESSAGE = 10008
 
 
 def is_star_event(e):
@@ -69,6 +71,32 @@ class StarboardPlugin(Plugin):
         super(StarboardPlugin, self).load(ctx)
         self.updates = {}
         self.locks = {}
+
+    @Plugin.command('show', '<mid:snowflake>', group='stars', level=CommandLevels.TRUSTED)
+    def stars_show(self, event, mid):
+        try:
+            star = StarboardEntry.select().join(Message).where(
+                (Message.guild_id == event.guild.id) &
+                (~(StarboardEntry.star_message_id >> None)) &
+                (
+                    (Message.id == mid) |
+                    (StarboardEntry.star_message_id == mid)
+                )
+            ).get()
+        except StarboardEntry.DoesNotExist:
+            raise CommandFail('no starboard message with that id')
+
+        _, sb_config = event.config.get_board(star.message.channel_id)
+
+        try:
+            source_msg = self.client.api.channels_messages_get(
+                star.message.channel_id,
+                star.message_id)
+        except:
+            raise CommandFail('no starboard message with that id')
+
+        content, embed = self.get_embed(star, source_msg, sb_config)
+        event.msg.reply(content, embed=embed)
 
     @Plugin.command('stats', '[user:user]', group='stars', level=CommandLevels.MOD)
     def stars_stats(self, event, user=None):
@@ -397,11 +425,20 @@ class StarboardPlugin(Plugin):
                 self.log.exception('Failed to post starboard message: ')
                 return
         else:
-            msg = self.client.api.channels_messages_modify(
-                star.star_channel_id,
-                star.star_message_id,
-                content,
-                embed=embed)
+            try:
+                msg = self.client.api.channels_messages_modify(
+                    star.star_channel_id,
+                    star.star_message_id,
+                    content,
+                    embed=embed)
+            except APIException as e:
+                # If we get a 10008, assume this message was deleted
+                if e.code == UNKNOWN_MESSAGE:
+                    star.star_message_id = None
+                    star.star_channel_id = None
+
+                    # Recurse so we repost
+                    return self.post_star(star, source_msg, starboard_id, config)
 
         # Update our starboard entry
         StarboardEntry.update(
@@ -442,7 +479,10 @@ class StarboardPlugin(Plugin):
             return
 
         # Check if the board prevents self stars
-        _, board = event.config.get_board(event.channel_id)
+        sb_id, board = event.config.get_board(event.channel_id)
+        if not sb_id:
+            return
+
         if board.prevent_self_star and msg.author_id == event.user_id:
             event.delete()
             return
