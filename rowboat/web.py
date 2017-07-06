@@ -26,7 +26,7 @@ def before_first_request():
     rowboat.app.token = data.get('token')
     rowboat.app.config.update(data['web'])
     rowboat.app.config['token'] = data.get('SECRET_KEY')
-    rowboat.app_config['SECRET_KEY'] = data.get('SECRET_KEY')
+    rowboat.app.config['SECRET_KEY'] = data.get('SECRET_KEY')
 
 @rowboat.app.before_request
 def check_auth():
