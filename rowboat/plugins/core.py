@@ -40,6 +40,9 @@ Rowboat is a moderation and utilitarian Bot built for large Discord servers.
 GREEN_TICK_EMOJI = 'green_tick:305231298799206401'
 RED_TICK_EMOJI = 'red_tick:305231335512080385'
 
+ROWBOAT_GUILD_ID = 290923757399310337
+ROWBOAT_USER_ROLE_ID = 339256926921555968
+
 
 class CorePlugin(Plugin):
     def load(self, ctx):
@@ -81,7 +84,7 @@ class CorePlugin(Plugin):
             events = inotify.get_events(fd)
             for event in events:
                 # Can't reload core.py sadly
-                if event.name == 'core.py':
+                if event.name.startswith('core.py'):
                     continue
 
                 plugin_name = '{}Plugin'.format(event.name.split('.', 1)[0].title())
@@ -115,6 +118,9 @@ class CorePlugin(Plugin):
 
                     # Reload the guild entirely
                     self.guilds[data['id']] = Guild.with_id(data['id'])
+
+                    # Update guild access
+                    self.update_rowboat_guild_access()
                 except:
                     self.log.exception(u'Failed to reload config for guild %s', self.guilds[data['id']].name)
                     continue
@@ -126,6 +132,54 @@ class CorePlugin(Plugin):
         ctx['guilds'] = self.guilds
         ctx['startup'] = self.startup
         super(CorePlugin, self).unload(ctx)
+
+    def update_rowboat_guild_access(self):
+        if ROWBOAT_GUILD_ID not in self.state.guilds or ENV != 'prod':
+            return
+
+        rb_guild = self.state.guilds.get(ROWBOAT_GUILD_ID)
+        if not rb_guild:
+            return
+
+        self.log.info('Updating rowboat guild access')
+
+        guilds = Guild.select(
+            Guild.guild_id,
+            Guild.config
+        ).where(
+            (Guild.enabled == 1)
+        )
+
+        users_who_should_have_access = set()
+        for guild in guilds:
+            if 'web' not in guild.config:
+                continue
+
+            for user_id in guild.config['web'].keys():
+                users_who_should_have_access.add(int(user_id))
+
+        # TODO: sharding
+        users_who_have_access = {
+            i.id for i in rb_guild.members.values()
+            if ROWBOAT_USER_ROLE_ID in i.roles
+        }
+
+        remove_access = set(users_who_have_access) - set(users_who_should_have_access)
+        add_access = set(users_who_should_have_access) - set(users_who_have_access)
+
+        for user_id in remove_access:
+            member = rb_guild.members.get(user_id)
+            if not member:
+                continue
+
+            member.remove_role(ROWBOAT_USER_ROLE_ID)
+
+        for user_id in add_access:
+            member = rb_guild.members.get(user_id)
+            if not member:
+                continue
+
+            member.add_role(ROWBOAT_USER_ROLE_ID)
 
     def on_pre(self, plugin, func, event, args, kwargs):
         """
@@ -155,6 +209,8 @@ class CorePlugin(Plugin):
                 return
 
         event.base_config = self.guilds[guild_id].get_config()
+        if not event.base_config:
+            return
 
         plugin_name = plugin.name.lower().replace('plugin', '')
         if not getattr(event.base_config.plugins, plugin_name, None):
@@ -280,18 +336,22 @@ class CorePlugin(Plugin):
         if not guild.enabled:
             return
 
+        config = guild.get_config()
+        if not config:
+            return
+
         # Ensure we're updated
         self.log.info('Syncing guild %s', event.guild.id)
         guild.sync(event.guild)
 
         self.guilds[event.id] = guild
 
-        if guild.get_config().nickname:
+        if config.nickname:
             def set_nickname():
                 m = event.members.select_one(id=self.state.me.id)
-                if m and m.nick != guild.get_config().nickname:
+                if m and m.nick != config.nickname:
                     try:
-                        m.set_nickname(guild.get_config().nickname)
+                        m.set_nickname(config.nickname)
                     except APIException as e:
                         self.log.warning('Failed to set nickname for guild %s (%s)', event.guild, e.content)
             self.spawn_later(5, set_nickname)

@@ -147,8 +147,8 @@ class ModLogConfig(PluginConfig):
 
 class Formatter(string.Formatter):
     def convert_field(self, value, conversion):
-        if conversion == 'z':
-            return S(unicode(value), escape_mentions=False, escape_codeblocks=True)
+        if conversion in ('z', 's'):
+            return S(unicode(value), escape_codeblocks=True)
         return unicode(value)
 
 
@@ -275,12 +275,9 @@ class ModLogPlugin(Plugin):
                 if action in config._custom:
                     info = config._custom[action]
 
+            # Format contents and create the message with the given emoji
             contents = self.fmt.format(six.text_type(info['format']), e=event, **details)
-
-            msg = u':{}: {}'.format(
-                info['emoji'],
-                S(contents),
-            )
+            msg = u':{}: {}'.format(info['emoji'], contents)
 
             if chan_config.timestamps:
                 ts = pytz.utc.localize(datetime.utcnow()).astimezone(chan_config.tz)

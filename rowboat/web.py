@@ -8,6 +8,7 @@ from holster.flask_ext import Holster
 from rowboat import ENV
 from rowboat.sql import init_db
 from rowboat.models.user import User
+from rowboat.types.guild import PluginsConfig
 
 from yaml import load
 
@@ -19,14 +20,15 @@ logging.getLogger('peewee').setLevel(logging.DEBUG)
 def before_first_request():
     init_db(ENV)
 
+    PluginsConfig.force_load_plugin_configs()
+
     with open('config.yaml', 'r') as f:
         data = load(f)
-    
-    rowboat.app.secret_key = data.get('SECRET_KEY')
-    rowboat.app.token = data.get('token')
+
     rowboat.app.config.update(data['web'])
-    rowboat.app.config['token'] = data.get('SECRET_KEY')
-    rowboat.app.config['SECRET_KEY'] = data.get('SECRET_KEY')
+    rowboat.app.secret_key = data['web']['SECRET_KEY']
+    rowboat.app.config['token'] = data.get('token')
+
 
 @rowboat.app.before_request
 def check_auth():
