@@ -6,7 +6,7 @@ import traceback
 
 from peewee import (
     BigIntegerField, ForeignKeyField, TextField, DateTimeField,
-    BooleanField, UUIDField, IntegerField
+    BooleanField, UUIDField
 )
 from yaml import load
 from datetime import datetime, timedelta
@@ -227,8 +227,9 @@ class MessageArchive(BaseModel):
         if fmt == 'txt':
             return u'\n'.join(map(self.encode_message_text, q))
         elif fmt == 'csv':
-            return u'\n'.join(
-                ['id,channel_id,timestamp,author_id,author,content,deleted,attachments'] + map(self.encode_message_csv, q))
+            return u'\n'.join([
+                'id,channel_id,timestamp,author_id,author,content,deleted,attachments'
+            ] + map(self.encode_message_csv, q))
         elif fmt == 'json':
             return json.dumps({
                 'messages': map(self.encode_message_json, q)
@@ -424,20 +425,4 @@ class Command(BaseModel):
             version=REV,
             success=not exception,
             traceback=traceback.format_exc() if exception else None,
-        )
-
-
-@BaseModel.register
-class TempSpamScore(BaseModel):
-    message_id = BigIntegerField(primary_key=True)
-    score = IntegerField()
-
-    class Meta:
-        db_table = 'temp_spam_score'
-
-    @classmethod
-    def track(cls, message_id, score):
-        cls.create(
-            message_id=message_id,
-            score=score,
         )
